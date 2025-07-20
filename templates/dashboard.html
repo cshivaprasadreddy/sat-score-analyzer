@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Score Improvement Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .dashboard-container {
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 20px;
+            font-weight: 600;
+        }
+        .score-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .score-gain {
+            font-size: 1.5rem;
+            color: #28a745;
+            font-weight: 600;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        .progress-bar-custom {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+        .complexity-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+        .complexity-easy {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .complexity-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .complexity-hard {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .question-item {
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 8px;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .metric-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .threshold-info {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid dashboard-container">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h1><i class="fas fa-chart-line"></i> SAT Score Improvement Dashboard</h1>
+                        <p class="mb-0">Strategic Analysis for Maximum Score Enhancement</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <div id="dashboard-content" style="display: none;">
+            <!-- Score Overview Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-icon text-primary">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h3 id="current-total-score" class="score-value">0</h3>
+                        <p class="text-muted">Current Total Score</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-icon text-success">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <h3 id="potential-total-score" class="score-value">0</h3>
+                        <p class="text-muted">Potential Total Score</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-icon text-warning">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <h3 id="total-gain" class="score-value" style="color: #28a745;">+0</h3>
+                        <p class="text-muted">Maximum Gain</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-icon text-info">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <h3 id="improvement-percentage" class="score-value">0%</h3>
+                        <p class="text-muted">Improvement Potential</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Comparison Chart -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Score Comparison by Subject</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="subjectComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Details -->
+            <div class="row">
+                <!-- Math Section -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-calculator"></i> Math Analysis</h4>
+                        </div>
+                        <div class="card-body">
+                            <div id="math-details">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="mathProgressionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reading and Writing Section -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-book"></i> Reading and Writing Analysis</h4>
+                        </div>
+                        <div class="card-body">
+                            <div id="rw-details">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="rwProgressionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complexity Strategy Chart -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-layer-group"></i> Question Complexity Strategy</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="complexityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables for charts
+        let subjectChart, mathChart, rwChart, complexityChart;
+        let analysisData = {};
+
+        // Load analysis data
+        async function loadAnalysisData() {
+            try {
+                const response = await fetch('/api/analysis');
+                analysisData = await response.json();
+                
+                if (analysisData.error) {
+                    throw new Error(analysisData.error);
+                }
+                
+                updateDashboard();
+                hideLoading();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                hideLoading();
+                showError();
+            }
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+        }
+
+        function showError() {
+            document.getElementById('loading').innerHTML = 
+                '<div class="alert alert-danger">Error loading data. Please check console for details.</div>';
+        }
+
+        function updateDashboard() {
+            // Update metric cards
+            document.getElementById('current-total-score').textContent = analysisData.total_current;
+            document.getElementById('potential-total-score').textContent = analysisData.total_potential;
+            document.getElementById('total-gain').textContent = `+${analysisData.total_gain}`;
+            
+            const improvementPercentage = ((analysisData.total_gain / analysisData.total_current) * 100).toFixed(1);
+            document.getElementById('improvement-percentage').textContent = `${improvementPercentage}%`;
+
+            // Create charts
+            createSubjectComparisonChart();
+            createProgressionCharts();
+            createComplexityChart();
+            
+            // Update subject details
+            updateSubjectDetails();
+        }
+
+        function createSubjectComparisonChart() {
+            const ctx = document.getElementById('subjectComparisonChart').getContext('2d');
+            
+            const subjects = Object.keys(analysisData.subject_scores);
+            const currentScores = subjects.map(s => analysisData.subject_scores[s].current);
+            const potentialScores = subjects.map(s => analysisData.subject_scores[s].potential);
+            const gains = subjects.map(s => analysisData.subject_scores[s].max_gain);
+
+            subjectChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: subjects,
+                    datasets: [{
+                        label: 'Current Score',
+                        data: currentScores,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        borderRadius: 10
+                    }, {
+                        label: 'Potential Score',
+                        data: potentialScores,
+                        backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 2,
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        datalabels: {
+                            display: true,
+                            color: 'white',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+
+        async function createProgressionCharts() {
+            // Math progression
+            try {
+                const mathResponse = await fetch('/api/score-progression/Math');
+                const mathData = await mathResponse.json();
+                createProgressionChart('mathProgressionChart', mathData, 'Math');
+            } catch (error) {
+                console.error('Error loading math progression:', error);
+            }
+
+            // Reading and Writing progression
+            try {
+                const rwResponse = await fetch('/api/score-progression/Reading and Writing');
+                const rwData = await rwResponse.json();
+                createProgressionChart('rwProgressionChart', rwData, 'Reading and Writing');
+            } catch (error) {
+                console.error('Error loading RW progression:', error);
+            }
+        }
+
+        function createProgressionChart(canvasId, data, subject) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: `${subject} Score Progression`,
+                        data: data.data,
+                        borderColor: subject === 'Math' ? '#667eea' : '#764ba2',
+                        backgroundColor: subject === 'Math' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(118, 75, 162, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: subject === 'Math' ? '#667eea' : '#764ba2',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createComplexityChart() {
+            const ctx = document.getElementById('complexityChart').getContext('2d');
+            
+            const subjects = Object.keys(analysisData.subject_scores);
+            const easyData = subjects.map(s => analysisData.subject_scores[s].complexity_impact.easy);
+            const mediumData = subjects.map(s => analysisData.subject_scores[s].complexity_impact.medium);
+            const hardData = subjects.map(s => analysisData.subject_scores[s].complexity_impact.hard);
+
+            complexityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: subjects,
+                    datasets: [{
+                        label: 'Easy Questions Impact',
+                        data: easyData,
+                        backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                        borderRadius: 8
+                    }, {
+                        label: 'Medium Questions Impact',
+                        data: mediumData,
+                        backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                        borderRadius: 8
+                    }, {
+                        label: 'Hard Questions Impact',
+                        data: hardData,
+                        backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSubjectDetails() {
+            const subjects = Object.keys(analysisData.subject_scores);
+            
+            subjects.forEach(subject => {
+                const data = analysisData.subject_scores[subject];
+                const containerId = subject === 'Math' ? 'math-details' : 'rw-details';
+                const container = document.getElementById(containerId);
+                
+                container.innerHTML = `
+                    <div class="threshold-info">
+                        <h5><i class="fas fa-sliders-h"></i> Adaptive Threshold</h5>
+                        <p><strong>Threshold:</strong> ${(data.threshold * 100).toFixed(0)}% | 
+                           <strong>Current Difficulty:</strong> ${data.current_difficulty.toUpperCase()}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h5><i class="fas fa-trophy"></i> Score Potential</h5>
+                        <div class="row">
+                            <div class="col-4 text-center">
+                                <div class="score-value text-primary">${data.current}</div>
+                                <small>Current</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="score-value text-success">${data.potential}</div>
+                                <small>Potential</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="score-gain">+${data.max_gain}</div>
+                                <small>Max Gain</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h5><i class="fas fa-layer-group"></i> Complexity Breakdown</h5>
+                        <div class="mb-2">
+                            <span class="complexity-badge complexity-easy">
+                                <i class="fas fa-star"></i> Easy: ${data.complexity_breakdown.easy} questions
+                            </span>
+                            <span class="complexity-badge complexity-medium">
+                                <i class="fas fa-star-half-alt"></i> Medium: ${data.complexity_breakdown.medium} questions
+                            </span>
+                            <span class="complexity-badge complexity-hard">
+                                <i class="fas fa-exclamation-triangle"></i> Hard: ${data.complexity_breakdown.hard} questions
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h5><i class="fas fa-list"></i> Top Priority Questions</h5>
+                        ${data.top_questions.slice(0, 3).map((q, i) => `
+                            <div class="question-item">
+                                <strong>#${i + 1} Priority</strong><br>
+                                <small>Question ID: ${q.question_id}</small><br>
+                                <small>Module ${q.module} | +${q.impact_score} points</small>
+                                <span class="complexity-badge complexity-${q.difficulty.toLowerCase()}">
+                                    ${q.difficulty}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            });
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalysisData();
+        });
+    </script>
+</body>
+</html>
